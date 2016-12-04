@@ -214,21 +214,21 @@ fn main() {
         zfar: 1.0,
     };
 
-    let mut mesh = Mesh::sphere(Vector3::zero(), 1.0, 24, 24);
+    let mut sphere = Mesh::sphere(Vector3::zero(), 1.0, 24, 24);
+    let mut cube = Mesh::cube();
 
     let sleep_time = std::time::Duration::from_millis(16);
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let now = std::time::Instant::now();
 
         {
-            let mut meshes = Vec::new();
-            meshes.push(&mesh);
-
+            let meshes = vec![&sphere,&cube];
             device.clear(0xffeeeeee);
             device.render(&camera, &meshes);
         }
 
-        mesh.rotation = mesh.rotation + Vector3::new(0.005, 0.005, 0.005);
+        sphere.rotation = sphere.rotation + Vector3::new(0.005, 0.005, 0.005);
+        cube.rotation = cube.rotation + Vector3::new(0.005, 0.005, 0.005);
 
         window.update_with_buffer(&device.backbuffer);
 

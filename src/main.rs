@@ -3,8 +3,10 @@ extern crate minifb;
 
 use minifb::{Key, WindowOptions, Window};
 
-const WIDTH: usize = 200;
-const HEIGHT: usize = 200;
+const WIDTH: usize = 400;
+const HEIGHT: usize = 400;
+
+use std::f64;
 
 mod math;
 
@@ -16,6 +18,9 @@ use math::quaternion::Quaternion;
 struct Camera {
     position: Vector3,
     target: Vector3,
+    fov: f64,
+    zfar: f64,
+    znear: f64,
 }
 
 #[derive(Debug)]
@@ -92,7 +97,7 @@ impl Device {
     fn render(&mut self, camera: &Camera, meshes: &Vec<&Mesh>) {
         let view_mat = Matrix4::look_at_lh(camera.position, camera.target, Vector3::unit_y());
         let projection_mat =
-            Matrix4::perspective_rh(0.78, self.width as f64 / self.height as f64, 0.01, 10.0);
+            Matrix4::perspective_rh(camera.fov, self.width as f64 / self.height as f64, camera.znear, camera.zfar);
         for mesh in meshes {
 
             let world_mat = Matrix4::rotation(Quaternion::from_euler_angle(mesh.rotation)) *
@@ -111,25 +116,25 @@ impl Device {
 
 fn main() {
 
-
     let mut device = Device::new(WIDTH, HEIGHT);
 
     let mut window = Window::new("SWR_RS",
                                  WIDTH,
                                  HEIGHT,
-                                 WindowOptions { scale: minifb::Scale::X4, ..Default::default() })
+                                 WindowOptions { scale: minifb::Scale::X2, ..Default::default() })
         .unwrap_or_else(|e| {
             panic!("{}", e);
         });
 
     let camera = Camera {
-        position: Vector3::new(0.0, 0.0, 15.0),
+        position: Vector3::new(0.0, 0.0, 10.0),
         target: Vector3::zero(),
+        fov: 45.0 * f64::consts::PI / 180.0,
+        znear: 0.01,
+        zfar: 1.0,
     };
 
     let mut mesh = Mesh::cube();
-
-    mesh.position = Vector3::new(0.0, 0.0, 1.0);
 
     let sleep_time = std::time::Duration::from_millis(16);
 

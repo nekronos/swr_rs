@@ -17,6 +17,18 @@ impl Vector2 {
     pub fn zero() -> Vector2 {
         Vector2::new(0.0, 0.0)
     }
+
+    pub fn length_sqr(self) -> f64 {
+        self.x * self.x + self.y * self.y
+    }
+
+    pub fn length(self) -> f64 {
+        self.length_sqr().sqrt()
+    }
+
+    pub fn lerp(a: Vector2, b: Vector2, t: f64) -> Self {
+        a + (b - a) * t
+    }
 }
 
 impl Add for Vector2 {
@@ -37,6 +49,17 @@ impl Sub for Vector2 {
         Vector2 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
+        }
+    }
+}
+
+impl Mul<f64> for Vector2 {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Vector2 {
+        Vector2 {
+            x: self.x * rhs,
+            y: self.y * rhs,
         }
     }
 }

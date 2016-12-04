@@ -24,9 +24,23 @@ struct Camera {
 }
 
 #[derive(Debug)]
+struct Face {
+    a: u32,
+    b: u32,
+    c: u32,
+}
+
+impl Face {
+    fn new(a: u32, b: u32, c: u32) -> Face {
+        Face { a: a, b: b, c: c }
+    }
+}
+
+#[derive(Debug)]
 struct Mesh {
     name: String,
     vertices: Vec<Vector3>,
+    faces: Vec<Face>,
     position: Vector3,
     rotation: Vector3,
 }
@@ -36,15 +50,29 @@ impl Mesh {
         Mesh {
             name: "Cube".to_string(),
             vertices: vec![
-                Vector3::new(-1.0, 1.0, 1.0),
-                Vector3::new(1.0, 1.0, 1.0),
-                Vector3::new(-1.0, -1.0, 1.0),
-                Vector3::new(-1.0, -1.0, -1.0),
+                Vector3::new(-1.0,-1.0, -1.0),
+                Vector3::new( 1.0,-1.0, -1.0),
+                Vector3::new( 1.0, 1.0, -1.0),
                 Vector3::new(-1.0, 1.0, -1.0),
-                Vector3::new(1.0, 1.0, -1.0),
-                Vector3::new(1.0, -1.0, 1.0),
-                Vector3::new(1.0, -1.0, -1.0),
+                Vector3::new(-1.0,-1.0,  1.0),
+                Vector3::new( 1.0,-1.0,  1.0),
+                Vector3::new( 1.0, 1.0,  1.0),
+                Vector3::new(-1.0, 1.0,  1.0),
 	    	],
+            faces: vec![
+                Face::new(0, 1, 2),
+                Face::new(2, 3, 0),
+                Face::new(1, 5, 6),
+                Face::new(6, 2, 1),
+                Face::new(4, 7, 6),
+                Face::new(6, 5, 4),
+                Face::new(0, 3, 7),
+                Face::new(7, 4, 0),
+                Face::new(5, 1, 0),
+                Face::new(0, 4, 5),
+                Face::new(2, 6, 7),
+                Face::new(7, 3, 2),
+            ],
             position: Vector3::zero(),
             rotation: Vector3::zero(),
         }
@@ -81,7 +109,15 @@ impl Device {
     fn draw_point(&mut self, point: Vector2) {
         if point.x >= 0.0 && point.y >= 0.0 && point.x < self.width as f64 &&
            point.y < self.height as f64 {
-            self.put_pixel(point.x as u32, point.y as u32, 0xff00ccff)
+            self.put_pixel(point.x as u32, point.y as u32, 0xffff2222)
+        }
+    }
+
+    fn draw_line(&mut self, p1: Vector2, p2: Vector2) {
+        let len = (p1 - p2).length().abs();
+
+        for i in 0..len as u32 {
+            self.draw_point(Vector2::lerp(p1, p2, i as f64 / len));
         }
     }
 
@@ -96,17 +132,23 @@ impl Device {
 
     fn render(&mut self, camera: &Camera, meshes: &Vec<&Mesh>) {
         let view_mat = Matrix4::look_at_lh(camera.position, camera.target, Vector3::unit_y());
-        let projection_mat =
-            Matrix4::perspective_rh(camera.fov, self.width as f64 / self.height as f64, camera.znear, camera.zfar);
+        let projection_mat = Matrix4::perspective_rh(camera.fov,
+                                                     self.width as f64 / self.height as f64,
+                                                     camera.znear,
+                                                     camera.zfar);
         for mesh in meshes {
 
             let world_mat = Matrix4::rotation(Quaternion::from_euler_angle(mesh.rotation)) *
                             Matrix4::translation(mesh.position);
             let transform_mat = world_mat * view_mat * projection_mat;
 
-            for vertex in &mesh.vertices {
-                let p = self.project(vertex, &transform_mat);
-                self.draw_point(p)
+            for face in &mesh.faces {
+                let p1 = self.project(&mesh.vertices[face.a as usize], &transform_mat);
+                let p2 = self.project(&mesh.vertices[face.b as usize], &transform_mat);
+                let p3 = self.project(&mesh.vertices[face.c as usize], &transform_mat);
+                self.draw_line(p1, p2);
+                self.draw_line(p2, p3);
+                self.draw_line(p3, p1);
             }
 
         }
@@ -159,5 +201,4 @@ fn main() {
             std::thread::sleep(sleep)
         }
     }
-
 }

@@ -3,16 +3,19 @@ extern crate minifb;
 
 use minifb::{Key, WindowOptions, Window};
 
-const WIDTH: usize = 800;
-const HEIGHT: usize = 600;
+const WIDTH: usize = 1200;
+const HEIGHT: usize = 720;
 
 use std::f64;
 
 mod math;
+mod geometry;
 
 use math::vector::{Vector2, Vector3};
 use math::matrix::Matrix4;
 use math::quaternion::Quaternion;
+
+use geometry::mesh::Mesh;
 
 #[derive(Debug)]
 struct Camera {
@@ -21,62 +24,6 @@ struct Camera {
     fov: f64,
     zfar: f64,
     znear: f64,
-}
-
-#[derive(Debug)]
-struct Face {
-    a: u32,
-    b: u32,
-    c: u32,
-}
-
-impl Face {
-    fn new(a: u32, b: u32, c: u32) -> Face {
-        Face { a: a, b: b, c: c }
-    }
-}
-
-#[derive(Debug)]
-struct Mesh {
-    name: String,
-    vertices: Vec<Vector3>,
-    faces: Vec<Face>,
-    position: Vector3,
-    rotation: Vector3,
-}
-
-impl Mesh {
-    fn cube() -> Mesh {
-        Mesh {
-            name: "Cube".to_string(),
-            vertices: vec![
-                Vector3::new(-1.0,-1.0, -1.0),
-                Vector3::new( 1.0,-1.0, -1.0),
-                Vector3::new( 1.0, 1.0, -1.0),
-                Vector3::new(-1.0, 1.0, -1.0),
-                Vector3::new(-1.0,-1.0,  1.0),
-                Vector3::new( 1.0,-1.0,  1.0),
-                Vector3::new( 1.0, 1.0,  1.0),
-                Vector3::new(-1.0, 1.0,  1.0),
-	    	],
-            faces: vec![
-                Face::new(0, 1, 2),
-                Face::new(2, 3, 0),
-                Face::new(1, 5, 6),
-                Face::new(6, 2, 1),
-                Face::new(4, 7, 6),
-                Face::new(6, 5, 4),
-                Face::new(0, 3, 7),
-                Face::new(7, 4, 0),
-                Face::new(5, 1, 0),
-                Face::new(0, 4, 5),
-                Face::new(2, 6, 7),
-                Face::new(7, 3, 2),
-            ],
-            position: Vector3::zero(),
-            rotation: Vector3::zero(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -128,10 +75,8 @@ impl Device {
     fn plot(&mut self, x: i32, y: i32, c: f64) {
 
         let c = (255.0 * c) as u32;
-
-        // let color =  (0xff << 24) | (c << 16) | (c << 8) | (c);
-
-        let color = (0xff << 24) | (c << 8) | (c);
+        let c = 255 - c;
+        let color = (0xff << 24) | (c << 16) | (c << 8) | (c);
 
         if x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32 {
             self.put_pixel(x as u32, y as u32, color)
@@ -269,7 +214,7 @@ fn main() {
         zfar: 1.0,
     };
 
-    let mut mesh = Mesh::cube();
+    let mut mesh = Mesh::sphere(Vector3::zero(), 1.0, 24, 24);
 
     let sleep_time = std::time::Duration::from_millis(16);
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -279,7 +224,7 @@ fn main() {
             let mut meshes = Vec::new();
             meshes.push(&mesh);
 
-            device.clear(0xff000000);
+            device.clear(0xffeeeeee);
             device.render(&camera, &meshes);
         }
 

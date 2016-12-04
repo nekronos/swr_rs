@@ -3,8 +3,8 @@ extern crate minifb;
 
 use minifb::{Key, WindowOptions, Window};
 
-const WIDTH: usize = 400;
-const HEIGHT: usize = 400;
+const WIDTH: usize = 800;
+const HEIGHT: usize = 600;
 
 use std::f64;
 
@@ -86,6 +86,18 @@ struct Device {
     backbuffer: Box<[u32]>,
 }
 
+fn round(x: f64) -> f64 {
+    (x + 0.5).round()
+}
+
+fn fpart(x: f64) -> f64 {
+    x.fract().abs()
+}
+
+fn rfpart(x: f64) -> f64 {
+    1.0 - fpart(x)
+}
+
 impl Device {
     fn new(width: usize, height: usize) -> Device {
         Device {
@@ -113,12 +125,93 @@ impl Device {
         }
     }
 
+    fn plot(&mut self, x: i32, y: i32, c: f64) {
+
+        let c = (255.0 * c) as u32;
+
+        // let color =  (0xff << 24) | (c << 16) | (c << 8) | (c);
+
+        let color = (0xff << 24) | (c << 8) | (c);
+
+        if x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32 {
+            self.put_pixel(x as u32, y as u32, color)
+        }
+    }
+
     fn draw_line(&mut self, p1: Vector2, p2: Vector2) {
         let len = (p1 - p2).length().abs();
 
         for i in 0..len as u32 {
             self.draw_point(Vector2::lerp(p1, p2, i as f64 / len));
         }
+    }
+
+    fn draw_line_aa(&mut self, p1: Vector2, p2: Vector2) {
+        let x0 = p1.x;
+        let x1 = p2.x;
+        let y0 = p1.y;
+        let y1 = p2.y;
+
+        let steep = {
+            (y1 - y0).abs() > (x1 - x0).abs()
+        };
+
+        let (x0, y0, x1, y1) = if steep {
+            (y0, x0, y1, x1)
+        } else if x0 > x1 {
+            (x1, y1, x0, y0)
+        } else {
+            (x0, y0, x1, y1)
+        };
+
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+
+        let slope = dy / dx;
+        let xend = round(x0);
+        let yend = y0 + slope * (xend - x0);
+        let xgap = rfpart(x0 + 0.5);
+        let xpxl1 = xend as i32;
+        let ypxl1 = yend as i32;
+
+        if steep {
+            self.plot(ypxl1, xpxl1, rfpart(yend) * xgap);
+            self.plot(ypxl1 + 1, xpxl1, fpart(yend) * xgap);
+        } else {
+            self.plot(xpxl1, ypxl1, rfpart(yend) * xgap);
+            self.plot(xpxl1, ypxl1 + 1, fpart(yend) * xgap);
+        }
+
+        let mut intery = yend + slope;
+
+        let xend = round(x1);
+        let yend = y1 + slope * (xend - x1);
+        let xgap = fpart(x1 + 0.5);
+        let xpxl2 = xend as i32;
+        let ypxl2 = yend as i32;
+
+        if steep {
+            self.plot(ypxl2, xpxl2, rfpart(yend) * xgap);
+            self.plot(ypxl2 + 1, xpxl2, fpart(yend) * xgap);
+        } else {
+            self.plot(xpxl2, ypxl2, rfpart(yend) * xgap);
+            self.plot(xpxl2, ypxl2 + 1, fpart(yend) * xgap);
+        }
+
+        if steep {
+            for x in (xpxl1 + 1)..(xpxl2 - 1) {
+                self.plot(intery as i32, x, rfpart(intery));
+                self.plot(intery as i32 + 1, x, fpart(intery));
+                intery = intery + slope
+            }
+        } else {
+            for x in (xpxl1 + 1)..(xpxl2 - 1) {
+                self.plot(x, intery as i32, rfpart(intery));
+                self.plot(x, intery as i32 + 1, fpart(intery));
+                intery = intery + slope
+            }
+        }
+
     }
 
     fn project(&mut self, coord: &Vector3, trans: &Matrix4) -> Vector2 {
@@ -146,9 +239,9 @@ impl Device {
                 let p1 = self.project(&mesh.vertices[face.a as usize], &transform_mat);
                 let p2 = self.project(&mesh.vertices[face.b as usize], &transform_mat);
                 let p3 = self.project(&mesh.vertices[face.c as usize], &transform_mat);
-                self.draw_line(p1, p2);
-                self.draw_line(p2, p3);
-                self.draw_line(p3, p1);
+                self.draw_line_aa(p1, p2);
+                self.draw_line_aa(p2, p3);
+                self.draw_line_aa(p3, p1);
             }
 
         }
@@ -163,7 +256,7 @@ fn main() {
     let mut window = Window::new("SWR_RS",
                                  WIDTH,
                                  HEIGHT,
-                                 WindowOptions { scale: minifb::Scale::X2, ..Default::default() })
+                                 WindowOptions { scale: minifb::Scale::X1, ..Default::default() })
         .unwrap_or_else(|e| {
             panic!("{}", e);
         });
@@ -179,7 +272,6 @@ fn main() {
     let mut mesh = Mesh::cube();
 
     let sleep_time = std::time::Duration::from_millis(16);
-
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let now = std::time::Instant::now();
 
@@ -187,11 +279,11 @@ fn main() {
             let mut meshes = Vec::new();
             meshes.push(&mesh);
 
-            device.clear(0xff111111);
+            device.clear(0xff000000);
             device.render(&camera, &meshes);
         }
 
-        mesh.rotation = mesh.rotation + Vector3::new(0.01, 0.01, 0.01);
+        mesh.rotation = mesh.rotation + Vector3::new(0.005, 0.005, 0.005);
 
         window.update_with_buffer(&device.backbuffer);
 
@@ -200,5 +292,6 @@ fn main() {
             let sleep = sleep_time - elapsed;
             std::thread::sleep(sleep)
         }
+
     }
 }

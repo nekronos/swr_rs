@@ -19,39 +19,25 @@ impl Vector2 {
     }
 }
 
-#[derive(Debug,Clone,Copy,PartialEq)]
-pub struct Vector4 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub w: f64,
-}
-
-impl Vector4 {
-    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Vector4 {
-        Vector4 {
-            x: x,
-            y: y,
-            z: z,
-            w: w,
-        }
-    }
-
-    pub fn zero() -> Vector4 {
-        Vector4::new(0.0, 0.0, 0.0, 0.0)
-    }
-
-    pub fn xyz(self) -> Vector3 {
-        Vector3::new(self.x, self.y, self.z)
-    }
-}
-
-
-impl Div<f64> for Vector4 {
+impl Add for Vector2 {
     type Output = Self;
 
-    fn div(self, rhs: f64) -> Vector4 {
-        Vector4::new(self.x / rhs, self.y / rhs, self.z / rhs, self.w / rhs)
+    fn add(self, rhs: Vector2) -> Vector2 {
+        Vector2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for Vector2 {
+    type Output = Self;
+
+    fn sub(self, rhs: Vector2) -> Vector2 {
+        Vector2 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
     }
 }
 
@@ -149,6 +135,72 @@ impl Div<f64> for Vector3 {
 
     fn div(self, rhs: f64) -> Vector3 {
         Vector3::new(self.x / rhs, self.y / rhs, self.z / rhs)
+    }
+}
+
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub struct Vector4 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
+}
+
+impl Vector4 {
+    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Vector4 {
+        Vector4 {
+            x: x,
+            y: y,
+            z: z,
+            w: w,
+        }
+    }
+
+    pub fn zero() -> Vector4 {
+        Vector4::new(0.0, 0.0, 0.0, 0.0)
+    }
+
+    pub fn xyz(self) -> Vector3 {
+        Vector3::new(self.x, self.y, self.z)
+    }
+}
+
+impl Div<f64> for Vector4 {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Vector4 {
+        Vector4 {
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
+            w: self.w / rhs,
+        }
+    }
+}
+
+impl Add for Vector4 {
+    type Output = Self;
+
+    fn add(self, rhs: Vector4) -> Vector4 {
+        Vector4 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+            w: self.w + rhs.w,
+        }
+    }
+}
+
+impl Sub for Vector4 {
+    type Output = Self;
+
+    fn sub(self, rhs: Vector4) -> Vector4 {
+        Vector4 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+            w: self.w - rhs.w,
+        }
     }
 }
 

@@ -26,8 +26,26 @@ impl Vector2 {
         self.length_sqr().sqrt()
     }
 
+    pub fn max(self, other: Vector2) -> Self {
+        Vector2 {
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+        }
+    }
+
+    pub fn min(self, other: Vector2) -> Self {
+        Vector2 {
+            x: self.x.min(other.x),
+            y: self.y.min(other.y),
+        }
+    }
+
     pub fn lerp(a: Vector2, b: Vector2, t: f64) -> Self {
         a + (b - a) * t
+    }
+
+    pub fn cross(self, rhs: Vector2) -> f64 {
+        self.x * rhs.y - self.y * rhs.x
     }
 }
 
@@ -64,6 +82,17 @@ impl Mul<f64> for Vector2 {
     }
 }
 
+impl Mul for Vector2 {
+    type Output = Self;
+
+    fn mul(self, rhs: Vector2) -> Vector2 {
+        Vector2 {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+        }
+    }
+}
+
 #[derive(Debug,Clone,Copy,PartialEq)]
 pub struct Vector3 {
     pub x: f64,
@@ -80,6 +109,10 @@ impl Vector3 {
         Vector3::new(0.0, 0.0, 0.0)
     }
 
+    pub fn one() -> Vector3 {
+        Vector3::new(1.0, 1.0, 1.0)
+    }
+
     pub fn unit_x() -> Vector3 {
         Vector3::new(1.0, 0.0, 0.0)
     }
@@ -92,16 +125,20 @@ impl Vector3 {
         Vector3::new(0.0, 0.0, 1.0)
     }
 
-    pub fn dot(lhs: Vector3, rhs: Vector3) -> f64 {
-        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+    pub fn dot(self, rhs: Vector3) -> f64 {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
-    pub fn cross(lhs: Vector3, rhs: Vector3) -> Vector3 {
+    pub fn cross(self, rhs: Vector3) -> Vector3 {
         Vector3 {
-            x: lhs.y * rhs.z - lhs.z * rhs.y,
-            y: lhs.z * rhs.x - lhs.x * rhs.z,
-            z: lhs.x * rhs.y - lhs.y * rhs.x,
+            x: self.y * rhs.z - self.z * rhs.y,
+            y: self.z * rhs.x - self.x * rhs.z,
+            z: self.x * rhs.y - self.y * rhs.x,
         }
+    }
+
+    pub fn lerp(self, b: Vector3, t: f64) -> Self {
+        self + (b - self) * t
     }
 
     pub fn length_sqr(self) -> f64 {
@@ -127,6 +164,30 @@ impl Vector3 {
                      (vec.x * mat.m13) + (vec.y * mat.m23) + (vec.z * mat.m33) + mat.m43,
                      (vec.x * mat.m14) + (vec.y * mat.m24) + (vec.z * mat.m34) + mat.m44)
     }
+
+    pub fn max(self, other: Vector3) -> Self {
+        Vector3 {
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+            z: self.z.max(other.z),
+        }
+    }
+
+    pub fn min(self, other: Vector3) -> Self {
+        Vector3 {
+            x: self.x.min(other.x),
+            y: self.y.min(other.y),
+            z: self.z.min(other.z),
+        }
+    }
+
+    pub fn xy(self) -> Vector2 {
+        Vector2::new(self.x, self.y)
+    }
+
+    pub fn clamp(self, min: Vector3, max: Vector3) -> Self {
+        self.max(min).min(max)
+    }
 }
 
 impl Add for Vector3 {
@@ -142,6 +203,18 @@ impl Sub for Vector3 {
 
     fn sub(self, rhs: Vector3) -> Vector3 {
         Vector3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
+
+impl Mul for Vector3 {
+    type Output = Self;
+
+    fn mul(self, rhs: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
     }
 }
 
@@ -267,7 +340,7 @@ mod tests {
     fn cross() {
         let a = Vector3::new(2.0, 3.0, 4.0);
         let b = Vector3::new(5.0, 6.0, 7.0);
-        let c = Vector3::cross(a, b);
+        let c = a.cross(b);
         assert_eq!(Vector3::new(-3.0, 6.0, -3.0), c);
     }
 
@@ -275,7 +348,7 @@ mod tests {
     fn dot() {
         let a = Vector3::new(9.0, 2.0, 7.0);
         let b = Vector3::new(4.0, 8.0, 10.0);
-        let c = Vector3::dot(a, b);
+        let c = a.dot(b);
         assert_eq!(122.0, c);
     }
 

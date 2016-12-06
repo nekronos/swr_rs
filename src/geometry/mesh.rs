@@ -26,6 +26,20 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    pub fn triangle() -> Mesh {
+        Mesh {
+            name: "Triangle".to_string(),
+            vertices: vec![
+                Vector3::new(-1.0,-1.0, -1.0),
+                Vector3::new( 1.0,-1.0, -1.0),
+                Vector3::new( 1.0, 1.0, -1.0),
+            ],
+            faces: vec![Face::new(0, 1, 2)],
+            position: Vector3::zero(),
+            rotation: Vector3::zero(),
+        }
+    }
+
     pub fn cube() -> Mesh {
         Mesh {
             name: "Cube".to_string(),

@@ -5,6 +5,29 @@ use super::vector::Vector3;
 use super::quaternion::Quaternion;
 
 #[derive(Debug,Clone,Copy,PartialEq)]
+pub struct Matrix2 {
+    pub m11: f64,
+    pub m12: f64,
+    pub m21: f64,
+    pub m22: f64,
+}
+
+impl Matrix2 {
+    pub fn new(m11: f64, m12: f64, m21: f64, m22: f64) -> Matrix2 {
+        Matrix2 {
+            m11: m11,
+            m12: m12,
+            m21: m21,
+            m22: m22,
+        }
+    }
+
+    pub fn determinant(self) -> f64 {
+        self.m11 * self.m22 - self.m21 * self.m12
+    }
+}
+
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub struct Matrix4 {
     pub m11: f64,
     pub m12: f64,

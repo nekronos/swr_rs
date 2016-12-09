@@ -23,6 +23,7 @@ pub struct Mesh {
     pub faces: Vec<Face>,
     pub position: Vector3,
     pub rotation: Vector3,
+    pub scale: Vector3,
 }
 
 impl Mesh {
@@ -37,6 +38,7 @@ impl Mesh {
             faces: vec![Face::new(0, 1, 2)],
             position: Vector3::zero(),
             rotation: Vector3::zero(),
+            scale: Vector3::one(),
         }
     }
 
@@ -69,6 +71,7 @@ impl Mesh {
             ],
             position: Vector3::zero(),
             rotation: Vector3::zero(),
+            scale: Vector3::one(),
         }
     }
 
@@ -117,6 +120,7 @@ impl Mesh {
             faces: faces,
             position: Vector3::zero(),
             rotation: Vector3::zero(),
+            scale: Vector3::one(),
         }
     }
 }

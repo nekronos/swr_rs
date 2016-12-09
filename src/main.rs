@@ -81,7 +81,7 @@ impl Device {
     fn plot(&mut self, x: i32, y: i32, c: f64) {
 
         let c = (255.0 * c) as u32;
-        let c = 255 - c;
+        // let c = 255 - c;
         let color = (0xff << 24) | (c << 16) | (c << 8) | (c);
 
         if x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32 {
@@ -194,8 +194,9 @@ impl Device {
 
     fn draw_triangle(&mut self, v0: Vector3, v1: Vector3, v2: Vector3) {
         let screen_max = Vector2::new(self.width as f64, self.height as f64);
-        let max = v0.max(v1).max(v2).xy().max(screen_max);
+        let max = v0.max(v1).max(v2).xy().min(screen_max);
         let min = v0.min(v1).min(v2).xy().max(Vector2::zero());
+
         for y in min.y as u32..max.y as u32 {
             for x in min.x as u32..max.x as u32 {
 
@@ -230,7 +231,9 @@ impl Device {
                                                      camera.zfar);
         for mesh in meshes {
 
-            let world_mat = Matrix4::rotation(Quaternion::from_euler_angle(mesh.rotation)) *
+
+            let world_mat = Matrix4::scale(mesh.scale) *
+                            Matrix4::rotation(Quaternion::from_euler_angle(mesh.rotation)) *
                             Matrix4::translation(mesh.position);
             let transform_mat = world_mat * view_mat * projection_mat;
 
@@ -238,11 +241,10 @@ impl Device {
                 let v0 = self.project(&mesh.vertices[face.a as usize], &transform_mat);
                 let v1 = self.project(&mesh.vertices[face.b as usize], &transform_mat);
                 let v2 = self.project(&mesh.vertices[face.c as usize], &transform_mat);
-                self.draw_triangle(v0, v1, v2);
-                // self.draw_line_aa(v0, v1);
-                // self.draw_line_aa(v1, v2);
-                // self.draw_line_aa(v2, v0);
-                // self.fill_triangle_simple(p1, p2, p3)
+                // self.draw_triangle(v0, v1, v2);
+                self.draw_line_aa(v0, v1);
+                self.draw_line_aa(v1, v2);
+                self.draw_line_aa(v2, v0);
             }
 
         }
@@ -275,25 +277,32 @@ fn main() {
     };
 
     let mut sphere = Mesh::sphere(Vector3::zero(), 1.0, 16, 16);
-    // sphere.position = Vector3::new(1.5, 0.0, 0.0);
     let mut cube = Mesh::cube();
-    // cube.position = Vector3::new(-1.5, 0.0, 0.0);
 
     let mut triangle = Mesh::triangle();
+
+    let start = std::time::Instant::now();
+
 
     let sleep_time = std::time::Duration::from_millis(16);
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let now = std::time::Instant::now();
 
+        let elapsed = (now - start).subsec_nanos() as f64 * 1e-9 + (now - start).as_secs() as f64;
+
         {
-            let meshes = vec![&cube];
+            let meshes = vec![&cube, &sphere];
             // let meshes = vec![&triangle];
             device.clear(0xff222222);
             device.render(&camera, &meshes);
         }
 
+        let r = elapsed.sin().abs();
+        let r = Vector3::new(r, r, r);
         sphere.rotation = sphere.rotation + Vector3::new(0.005, 0.005, 0.005);
+        sphere.scale = Vector3::one() + r;
         cube.rotation = cube.rotation + Vector3::new(0.005, 0.005, 0.005);
+        cube.scale = Vector3::one() + r;
 
         window.update_with_buffer(&device.backbuffer);
 

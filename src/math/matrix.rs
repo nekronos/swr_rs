@@ -107,28 +107,28 @@ impl Matrix4 {
 
     pub fn look_at_lh(eye: Vector3, target: Vector3, up: Vector3) -> Matrix4 {
         let zaxis = (target - eye).normalize();
-        let xaxis = Vector3::cross(up, zaxis).normalize();
-        let yaxis = Vector3::cross(zaxis, xaxis).normalize();
+        let xaxis = up.cross(zaxis).normalize();
+        let yaxis = zaxis.cross(xaxis).normalize();
 
-        let mut result = Matrix4::identity();
+        Matrix4 {
+            m11: xaxis.x,
+            m21: xaxis.y,
+            m31: xaxis.z,
 
-        result.m11 = xaxis.x;
-        result.m21 = xaxis.y;
-        result.m31 = xaxis.z;
+            m12: yaxis.x,
+            m22: yaxis.y,
+            m32: yaxis.z,
 
-        result.m12 = yaxis.x;
-        result.m22 = yaxis.y;
-        result.m32 = yaxis.z;
+            m13: zaxis.x,
+            m23: zaxis.y,
+            m33: zaxis.z,
 
-        result.m13 = zaxis.x;
-        result.m23 = zaxis.y;
-        result.m33 = zaxis.z;
+            m41: -xaxis.dot(eye),
+            m42: -yaxis.dot(eye),
+            m43: -zaxis.dot(eye),
 
-        result.m41 = -Vector3::dot(xaxis, eye);
-        result.m41 = -Vector3::dot(yaxis, eye);
-        result.m43 = -Vector3::dot(zaxis, eye);
-
-        result
+            ..Matrix4::identity()
+        }
     }
 
     pub fn perspective_rh(fov: f64, aspect: f64, znear: f64, zfar: f64) -> Matrix4 {
@@ -139,24 +139,24 @@ impl Matrix4 {
         let length = zfar - znear;
         let znear_doubled = znear * 2.0;
 
-        let mut result = Matrix4::identity();
-
-        result.m11 = znear_doubled / width;
-        result.m22 = znear_doubled / height;
-        result.m33 = (-zfar - znear) / length;
-        result.m43 = (-znear_doubled * zfar) / length;
-        result.m44 = 0.0;
-        result.m34 = -1.0;
-
-        result
+        Matrix4 {
+            m11: znear_doubled / width,
+            m22: znear_doubled / height,
+            m33: (-zfar - znear) / length,
+            m43: (-znear_doubled * zfar) / length,
+            m44: 0.0,
+            m34: -1.0,
+            ..Matrix4::identity()
+        }
     }
 
-    pub fn translation(offset: Vector3) -> Matrix4 {
-        let mut result = Matrix4::identity();
-        result.m41 = offset.x;
-        result.m42 = offset.y;
-        result.m43 = offset.z;
-        result
+    pub fn scale(s: Vector3) -> Matrix4 {
+        Matrix4 {
+            m11: s.x,
+            m22: s.y,
+            m33: s.z,
+            ..Matrix4::identity()
+        }
     }
 
     pub fn rotation(quat: Quaternion) -> Matrix4 {
@@ -190,6 +190,14 @@ impl Matrix4 {
                      0.0,
                      0.0,
                      1.0)
+    }
+
+    pub fn translation(offset: Vector3) -> Matrix4 {
+        let mut m = Matrix4::identity();
+        m.m41 = offset.x;
+        m.m42 = offset.y;
+        m.m43 = offset.z;
+        m
     }
 }
 

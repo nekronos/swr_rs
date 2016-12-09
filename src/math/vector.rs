@@ -47,6 +47,10 @@ impl Vector2 {
     pub fn cross(self, rhs: Vector2) -> f64 {
         self.x * rhs.y - self.y * rhs.x
     }
+
+    pub fn dot(self, rhs: Vector2) -> f64 {
+        self.x * rhs.x + self.y * rhs.y
+    }
 }
 
 impl Add for Vector2 {

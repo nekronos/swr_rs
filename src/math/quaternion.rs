@@ -18,12 +18,12 @@ impl Quaternion {
         let t4 = (pitch * 0.5).cos();
         let t5 = (pitch * 0.5).sin();
 
-        let mut q = Quaternion::zero();
-        q.w = (t0 * t2 * t4) + (t1 * t3 * t5);
-        q.x = (t0 * t3 * t4) - (t1 * t2 * t5);
-        q.y = (t0 * t2 * t5) + (t1 * t3 * t4);
-        q.z = (t1 * t2 * t4) - (t0 * t3 * t5);
-        q
+        Quaternion {
+            w: (t0 * t2 * t4) + (t1 * t3 * t5),
+            x: (t0 * t3 * t4) - (t1 * t2 * t5),
+            y: (t0 * t2 * t5) + (t1 * t3 * t4),
+            z: (t1 * t2 * t4) - (t0 * t3 * t5),
+        }
     }
 
     pub fn to_euler_angle(quaternion: Quaternion) -> Vector3 {

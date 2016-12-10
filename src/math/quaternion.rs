@@ -5,6 +5,13 @@ use super::vector::Vector4;
 pub type Quaternion = Vector4;
 
 impl Quaternion {
+    pub fn from_euler_angle_degrees(euler_angle_degrees: Vector3) -> Quaternion {
+        let v = euler_angle_degrees;
+        Quaternion::from_euler_angle(Vector3::new(v.x.to_radians(),
+                                                  v.y.to_radians(),
+                                                  v.z.to_radians()))
+    }
+
     // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     pub fn from_euler_angle(euler_angle: Vector3) -> Quaternion {
         let pitch = euler_angle.x;

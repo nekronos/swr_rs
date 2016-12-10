@@ -27,14 +27,26 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    pub fn bounds(&self) -> (Vector3, Vector3) {
+        if self.vertices.len() > 0 {
+            let mut min = *self.vertices.first().unwrap();
+            let mut max = *self.vertices.first().unwrap();
+            for vert in &self.vertices {
+                min = min.min(*vert);
+                max = max.max(*vert);
+            }
+            (min, max)
+        } else {
+            (Vector3::zero(), Vector3::zero())
+        }
+    }
+
     pub fn triangle() -> Mesh {
         Mesh {
             name: "Triangle".to_string(),
-            vertices: vec![
-                Vector3::new(-1.0,-1.0, -1.0),
-                Vector3::new( 1.0,-1.0, -1.0),
-                Vector3::new( 1.0, 1.0, -1.0),
-            ],
+            vertices: vec![Vector3::new(-1.0, -1.0, -1.0),
+                           Vector3::new(1.0, -1.0, -1.0),
+                           Vector3::new(1.0, 1.0, -1.0)],
             faces: vec![Face::new(0, 1, 2)],
             position: Vector3::zero(),
             rotation: Vector3::zero(),
@@ -45,30 +57,26 @@ impl Mesh {
     pub fn cube() -> Mesh {
         Mesh {
             name: "Cube".to_string(),
-            vertices: vec![
-                Vector3::new(-1.0,-1.0, -1.0),
-                Vector3::new( 1.0,-1.0, -1.0),
-                Vector3::new( 1.0, 1.0, -1.0),
-                Vector3::new(-1.0, 1.0, -1.0),
-                Vector3::new(-1.0,-1.0,  1.0),
-                Vector3::new( 1.0,-1.0,  1.0),
-                Vector3::new( 1.0, 1.0,  1.0),
-                Vector3::new(-1.0, 1.0,  1.0),
-	    	],
-            faces: vec![
-                Face::new(0, 1, 2),
-                Face::new(2, 3, 0),
-                Face::new(1, 5, 6),
-                Face::new(6, 2, 1),
-                Face::new(4, 7, 6),
-                Face::new(6, 5, 4),
-                Face::new(0, 3, 7),
-                Face::new(7, 4, 0),
-                Face::new(5, 1, 0),
-                Face::new(0, 4, 5),
-                Face::new(2, 6, 7),
-                Face::new(7, 3, 2),
-            ],
+            vertices: vec![Vector3::new(-1.0, -1.0, -1.0),
+                           Vector3::new(1.0, -1.0, -1.0),
+                           Vector3::new(1.0, 1.0, -1.0),
+                           Vector3::new(-1.0, 1.0, -1.0),
+                           Vector3::new(-1.0, -1.0, 1.0),
+                           Vector3::new(1.0, -1.0, 1.0),
+                           Vector3::new(1.0, 1.0, 1.0),
+                           Vector3::new(-1.0, 1.0, 1.0)],
+            faces: vec![Face::new(0, 1, 2),
+                        Face::new(2, 3, 0),
+                        Face::new(1, 5, 6),
+                        Face::new(6, 2, 1),
+                        Face::new(4, 7, 6),
+                        Face::new(6, 5, 4),
+                        Face::new(0, 3, 7),
+                        Face::new(7, 4, 0),
+                        Face::new(5, 1, 0),
+                        Face::new(0, 4, 5),
+                        Face::new(2, 6, 7),
+                        Face::new(7, 3, 2)],
             position: Vector3::zero(),
             rotation: Vector3::zero(),
             scale: Vector3::one(),

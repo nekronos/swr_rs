@@ -1,5 +1,6 @@
 
 extern crate minifb;
+extern crate md3_rs;
 
 use minifb::{Key, WindowOptions, Window};
 
@@ -17,6 +18,41 @@ use math::matrix::Matrix2;
 use math::quaternion::Quaternion;
 
 use geometry::mesh::Mesh;
+use geometry::mesh::Face;
+
+use md3_rs::Md3;
+
+fn md3_to_mesh(md3: &Md3) -> Mesh {
+    let surface = md3.surfaces.first().unwrap();
+
+    let vertices = {
+        let mut vertices = Vec::new();
+        let frame = (&surface).vertices.first().unwrap();
+        for vert in frame {
+            vertices.push(Vector3::new(vert.x as f64, vert.y as f64, vert.z as f64));
+        }
+        vertices
+    };
+
+    let faces = {
+        let mut faces = Vec::new();
+        for face in &surface.triangles {
+            faces.push(Face::new(face.indexes[0] as u32,
+                                 face.indexes[1] as u32,
+                                 face.indexes[2] as u32))
+        }
+        faces
+    };
+
+    Mesh {
+        name: md3.header.name.clone(),
+        vertices: vertices,
+        faces: faces,
+        position: Vector3::zero(),
+        rotation: Vector3::zero(),
+        scale: Vector3::one(),
+    }
+}
 
 #[derive(Debug)]
 struct Camera {
@@ -175,9 +211,9 @@ impl Device {
     }
 
     fn render_pixel(&mut self, x: u32, y: u32, w: Vector3) {
-        let a = Vector3::new(1.5, 1.5, 1.5).clamp(Vector3::zero(), Vector3::one());
-        let b = Vector3::new(0.0, 1.5, 1.5).clamp(Vector3::zero(), Vector3::one());
-        let c = Vector3::new(1.5, 0.0, 1.5).clamp(Vector3::zero(), Vector3::one());
+        let a = Vector3::new(1.0, 0.0, 0.0).clamp(Vector3::zero(), Vector3::one());
+        let b = Vector3::new(0.0, 1.0, 0.0).clamp(Vector3::zero(), Vector3::one());
+        let c = Vector3::new(0.0, 0.0, 1.0).clamp(Vector3::zero(), Vector3::one());
 
         let color = a * w.x + b * w.y + c * w.z;
 
@@ -233,7 +269,7 @@ impl Device {
 
 
             let world_mat = Matrix4::scale(mesh.scale) *
-                            Matrix4::rotation(Quaternion::from_euler_angle(mesh.rotation)) *
+                            Matrix4::rotation(Quaternion::from_euler_angle_degrees(mesh.rotation)) *
                             Matrix4::translation(mesh.position);
             let transform_mat = world_mat * view_mat * projection_mat;
 
@@ -268,12 +304,16 @@ fn main() {
             panic!("{}", e);
         });
 
+    let md3 = Md3::from_file(std::env::args().nth(1).unwrap()).unwrap();
+
+    let mut md3_mesh = md3_to_mesh(&md3);
+
     let camera = Camera {
         position: Vector3::new(0.0, 0.0, 15.0),
         target: Vector3::zero(),
         fov: 45.0 * f64::consts::PI / 180.0,
         znear: 0.01,
-        zfar: 1.0,
+        zfar: 100.0,
     };
 
     let mut sphere = Mesh::sphere(Vector3::zero(), 1.0, 16, 16);
@@ -283,6 +323,14 @@ fn main() {
 
     let start = std::time::Instant::now();
 
+    let (min, max) = md3_mesh.bounds();
+
+    let size = max - min;
+    let scale = Vector3::one() * (4.0 / size.x.max(size.y.max(size.z)));
+
+    md3_mesh.scale = scale;
+    md3_mesh.position = Vector3::new(0.0, 0.0, 0.0);
+    md3_mesh.rotation = Vector3::new(0.0, 0.0, -90.0);
 
     let sleep_time = std::time::Duration::from_millis(16);
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -291,18 +339,22 @@ fn main() {
         let elapsed = (now - start).subsec_nanos() as f64 * 1e-9 + (now - start).as_secs() as f64;
 
         {
-            let meshes = vec![&cube, &sphere];
+
+            let meshes = vec![&md3_mesh];
+            // let meshes = vec![&cube, &sphere];
             // let meshes = vec![&triangle];
             device.clear(0xff222222);
             device.render(&camera, &meshes);
         }
 
-        let r = elapsed.sin().abs();
-        let r = Vector3::new(r, r, r);
-        sphere.rotation = sphere.rotation + Vector3::new(0.005, 0.005, 0.005);
-        sphere.scale = Vector3::one() + r;
-        cube.rotation = cube.rotation + Vector3::new(0.005, 0.005, 0.005);
-        cube.scale = Vector3::one() + r;
+        // let r = elapsed.sin().abs();
+        // let r = Vector3::new(r, r, r);
+        // sphere.rotation = sphere.rotation + Vector3::new(0.005, 0.005, 0.005);
+        // sphere.scale = Vector3::one() + r;
+        // cube.rotation = cube.rotation + Vector3::new(0.005, 0.005, 0.005);
+        // cube.scale = Vector3::one() + r;
+
+        md3_mesh.rotation = md3_mesh.rotation + Vector3::new(0.0, 0.3, 0.0);
 
         window.update_with_buffer(&device.backbuffer);
 

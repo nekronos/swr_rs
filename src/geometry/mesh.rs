@@ -1,5 +1,6 @@
 
 use super::super::math::vector::Vector3;
+use super::super::math::vector::Vector2;
 
 use std::f64;
 
@@ -21,6 +22,7 @@ pub struct Mesh {
     pub name: String,
     pub vertices: Vec<Vector3>,
     pub faces: Vec<Face>,
+    pub texcoords: Vec<Vector2>,
     pub position: Vector3,
     pub rotation: Vector3,
     pub scale: Vector3,
@@ -48,6 +50,7 @@ impl Mesh {
                            Vector3::new(1.0, -1.0, -1.0),
                            Vector3::new(1.0, 1.0, -1.0)],
             faces: vec![Face::new(0, 1, 2)],
+            texcoords: Vec::new(),
             position: Vector3::zero(),
             rotation: Vector3::zero(),
             scale: Vector3::one(),
@@ -77,6 +80,7 @@ impl Mesh {
                         Face::new(0, 4, 5),
                         Face::new(2, 6, 7),
                         Face::new(7, 3, 2)],
+            texcoords: Vec::new(),
             position: Vector3::zero(),
             rotation: Vector3::zero(),
             scale: Vector3::one(),
@@ -126,6 +130,7 @@ impl Mesh {
             name: "Sphere".to_string(),
             vertices: vertices,
             faces: faces,
+            texcoords: Vec::new(),
             position: Vector3::zero(),
             rotation: Vector3::zero(),
             scale: Vector3::one(),

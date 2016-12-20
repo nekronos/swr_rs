@@ -1,3 +1,6 @@
+extern crate lodepng;
+use lodepng::Bitmap;
+use lodepng::RGBA;
 
 extern crate minifb;
 extern crate md3_rs;
@@ -44,10 +47,19 @@ fn md3_to_mesh(md3: &Md3) -> Mesh {
         faces
     };
 
+    let texcoords = {
+        let mut texcoords = Vec::new();
+        for texcoord in &surface.tex_coords {
+            texcoords.push(Vector2::new(texcoord.st[0] as _, texcoord.st[1] as _))
+        }
+        texcoords
+    };
+
     Mesh {
         name: md3.header.name.clone(),
         vertices: vertices,
         faces: faces,
+        texcoords: texcoords,
         position: Vector3::zero(),
         rotation: Vector3::zero(),
         scale: Vector3::one(),
@@ -210,13 +222,29 @@ impl Device {
         Vector3::new(x, y, point.z)
     }
 
-    fn render_pixel(&mut self, x: u32, y: u32, w: Vector3) {
-        let a = Vector3::new(1.0, 0.0, 0.0).clamp(Vector3::zero(), Vector3::one());
-        let b = Vector3::new(0.0, 1.0, 0.0).clamp(Vector3::zero(), Vector3::one());
-        let c = Vector3::new(0.0, 0.0, 1.0).clamp(Vector3::zero(), Vector3::one());
+    fn tex_lookup(uv: Vector2, tex: &Bitmap<RGBA<u8>>) -> Vector3 {
+        let x = (uv.x * tex.width as f64) as usize;
+        let y = (uv.y * tex.height as f64) as usize;
+        let offset = (y * tex.width) + x;
+        let pixel = tex.buffer.get(offset).unwrap();
+        Vector3::new(pixel.r as f64, pixel.g as f64, pixel.b as f64) / 255.0
+    }
 
-        let color = a * w.x + b * w.y + c * w.z;
+    fn render_pixel(&mut self,
+                    x: u32,
+                    y: u32,
+                    w: Vector3,
+                    uv: (Vector2, Vector2, Vector2),
+                    tex: &Bitmap<RGBA<u8>>) {
+        
+        let uv = Vector2::new((uv.0.x * w.x) + (uv.1.x * w.y) + (uv.2.x * w.z),
+                              (uv.0.y * w.x) + (uv.1.y * w.y) + (uv.2.y * w.z));
 
+        let c1 = Device::tex_lookup(uv, tex) * w.x;
+        let c2 = Device::tex_lookup(uv, tex) * w.y;
+        let c3 = Device::tex_lookup(uv, tex) * w.z;
+
+        let color = c1 + c2 + c3;
         let color = color * 255.0;
 
         let r = color.x as u8 as u32;
@@ -228,7 +256,12 @@ impl Device {
         self.put_pixel(x, y, c)
     }
 
-    fn draw_triangle(&mut self, v0: Vector3, v1: Vector3, v2: Vector3) {
+    fn draw_triangle(&mut self,
+                     v0: Vector3,
+                     v1: Vector3,
+                     v2: Vector3,
+                     uv: (Vector2, Vector2, Vector2),
+                     tex: &Bitmap<RGBA<u8>>) {
         let screen_max = Vector2::new(self.width as f64, self.height as f64);
         let max = v0.max(v1).max(v2).xy().min(screen_max);
         let min = v0.min(v1).min(v2).xy().max(Vector2::zero());
@@ -236,10 +269,11 @@ impl Device {
         for y in min.y as u32..max.y as u32 {
             for x in min.x as u32..max.x as u32 {
 
+                let p = Vector2::new(x as f64, y as f64);
                 let a = edge_func(v0.xy(), v1.xy(), v2.xy());
-                let w0 = edge_func(v1.xy(), v2.xy(), Vector2::new(x as f64, y as f64)) / a;
-                let w1 = edge_func(v2.xy(), v0.xy(), Vector2::new(x as f64, y as f64)) / a;
-                let w2 = edge_func(v0.xy(), v1.xy(), Vector2::new(x as f64, y as f64)) / a;
+                let w0 = edge_func(v1.xy(), v2.xy(), p) / a;
+                let w1 = edge_func(v2.xy(), v0.xy(), p) / a;
+                let w2 = edge_func(v0.xy(), v1.xy(), p) / a;
 
                 let w = Vector3::new(w0, w1, w2);
 
@@ -249,7 +283,7 @@ impl Device {
                     let offset = y as usize * self.width + x as usize;
                     if self.depthbuffer[offset] < z {
                         self.depthbuffer[offset] = z;
-                        self.render_pixel(x, y, w)
+                        self.render_pixel(x, y, w, uv, tex)
                     }
 
                 }
@@ -259,15 +293,13 @@ impl Device {
 
     }
 
-    fn render(&mut self, camera: &Camera, meshes: &Vec<&Mesh>) {
+    fn render(&mut self, camera: &Camera, meshes: &Vec<&Mesh>, tex: &Bitmap<RGBA<u8>>) {
         let view_mat = Matrix4::look_at_lh(camera.position, camera.target, Vector3::unit_y());
         let projection_mat = Matrix4::perspective_rh(camera.fov,
                                                      self.width as f64 / self.height as f64,
                                                      camera.znear,
                                                      camera.zfar);
         for mesh in meshes {
-
-
             let world_mat = Matrix4::scale(mesh.scale) *
                             Matrix4::rotation(Quaternion::from_euler_angle_degrees(mesh.rotation)) *
                             Matrix4::translation(mesh.position);
@@ -277,14 +309,15 @@ impl Device {
                 let v0 = self.project(&mesh.vertices[face.a as usize], &transform_mat);
                 let v1 = self.project(&mesh.vertices[face.b as usize], &transform_mat);
                 let v2 = self.project(&mesh.vertices[face.c as usize], &transform_mat);
-                // self.draw_triangle(v0, v1, v2);
-                self.draw_line_aa(v0, v1);
-                self.draw_line_aa(v1, v2);
-                self.draw_line_aa(v2, v0);
+                let uv1 = mesh.texcoords[face.a as usize].clone();
+                let uv2 = mesh.texcoords[face.b as usize].clone();
+                let uv3 = mesh.texcoords[face.c as usize].clone();
+                self.draw_triangle(v0, v1, v2, (uv1, uv2, uv3), tex);
+                // self.draw_line_aa(v0, v1);
+                // self.draw_line_aa(v1, v2);
+                // self.draw_line_aa(v2, v0);
             }
-
         }
-
     }
 }
 
@@ -305,6 +338,7 @@ fn main() {
         });
 
     let md3 = Md3::from_file(std::env::args().nth(1).unwrap()).unwrap();
+    let png = lodepng::decode32_file(std::env::args().nth(2).unwrap()).unwrap();
 
     let mut md3_mesh = md3_to_mesh(&md3);
 
@@ -326,7 +360,7 @@ fn main() {
     let (min, max) = md3_mesh.bounds();
 
     let size = max - min;
-    let scale = Vector3::one() * (4.0 / size.x.max(size.y.max(size.z)));
+    let scale = Vector3::one() * (5.0 / size.x.max(size.y.max(size.z)));
 
     md3_mesh.scale = scale;
     md3_mesh.position = Vector3::new(0.0, 0.0, 0.0);
@@ -336,15 +370,13 @@ fn main() {
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let now = std::time::Instant::now();
 
-        let elapsed = (now - start).subsec_nanos() as f64 * 1e-9 + (now - start).as_secs() as f64;
-
         {
 
             let meshes = vec![&md3_mesh];
             // let meshes = vec![&cube, &sphere];
             // let meshes = vec![&triangle];
             device.clear(0xff222222);
-            device.render(&camera, &meshes);
+            device.render(&camera, &meshes, &png);
         }
 
         // let r = elapsed.sin().abs();

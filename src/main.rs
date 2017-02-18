@@ -211,9 +211,9 @@ impl Device {
     }
 
     fn render_pixel(&mut self, x: u32, y: u32, w: Vector3) {
-        let a = Vector3::new(1.0, 0.0, 0.0).clamp(Vector3::zero(), Vector3::one());
-        let b = Vector3::new(0.0, 1.0, 0.0).clamp(Vector3::zero(), Vector3::one());
-        let c = Vector3::new(0.0, 0.0, 1.0).clamp(Vector3::zero(), Vector3::one());
+        let a = Vector3::new(0.75, 0.75, 0.75).clamp(Vector3::zero(), Vector3::one());
+        let b = Vector3::new(0.5, 0.5, 0.5).clamp(Vector3::zero(), Vector3::one());
+        let c = Vector3::new(0.0, 0.0, 0.0).clamp(Vector3::zero(), Vector3::one());
 
         let color = a * w.x + b * w.y + c * w.z;
 
@@ -277,10 +277,10 @@ impl Device {
                 let v0 = self.project(&mesh.vertices[face.a as usize], &transform_mat);
                 let v1 = self.project(&mesh.vertices[face.b as usize], &transform_mat);
                 let v2 = self.project(&mesh.vertices[face.c as usize], &transform_mat);
-                // self.draw_triangle(v0, v1, v2);
-                self.draw_line_aa(v0, v1);
-                self.draw_line_aa(v1, v2);
-                self.draw_line_aa(v2, v0);
+                self.draw_triangle(v0, v1, v2);
+                // self.draw_line_aa(v0, v1);
+                // self.draw_line_aa(v1, v2);
+                // self.draw_line_aa(v2, v0);
             }
 
         }
@@ -299,14 +299,14 @@ fn main() {
     let mut window = Window::new("SWR_RS",
                                  WIDTH,
                                  HEIGHT,
-                                 WindowOptions { scale: minifb::Scale::X1, ..Default::default() })
+                                 WindowOptions { scale: minifb::Scale::X2, ..Default::default() })
         .unwrap_or_else(|e| {
             panic!("{}", e);
         });
 
-    let md3 = Md3::from_file(std::env::args().nth(1).unwrap()).unwrap();
-
-    let mut md3_mesh = md3_to_mesh(&md3);
+    // let md3 = Md3::from_file(std::env::args().nth(1).unwrap()).unwrap();
+    //
+    // let mut md3_mesh = md3_to_mesh(&md3);
 
     let camera = Camera {
         position: Vector3::new(0.0, 0.0, 15.0),
@@ -318,19 +318,31 @@ fn main() {
 
     let mut sphere = Mesh::sphere(Vector3::zero(), 1.0, 16, 16);
     let mut cube = Mesh::cube();
+    let mut octahedron = Mesh::octahedron(1.0);
+    octahedron.rotation = Vector3::new(0.0, 45.0, -90.0);
+    octahedron.scale = Vector3::new(1.0, 1.0, 2.0);
+    octahedron.position = Vector3::new(2.0, 0.0, 0.0);
+
+    let mut tetrahedron = Mesh::tetrahedron(1.0);
+    tetrahedron.rotation = Vector3::new(0.0, 45.0, -90.0);
+    tetrahedron.position = Vector3::new(-2.0, 0.0, 0.0);
 
     let mut triangle = Mesh::triangle();
 
+    let mut torus = Mesh::torus(1.0, 0.5, 32, 32);
+
+    let mut shell = Mesh::shell(0.1, 0.5, 3.0, 3, 32, 32);
+
     let start = std::time::Instant::now();
 
-    let (min, max) = md3_mesh.bounds();
-
-    let size = max - min;
-    let scale = Vector3::one() * (4.0 / size.x.max(size.y.max(size.z)));
-
-    md3_mesh.scale = scale;
-    md3_mesh.position = Vector3::new(0.0, 0.0, 0.0);
-    md3_mesh.rotation = Vector3::new(0.0, 0.0, -90.0);
+    // let (min, max) = md3_mesh.bounds();
+    //
+    // let size = max - min;
+    // let scale = Vector3::one() * (4.0 / size.x.max(size.y.max(size.z)));
+    //
+    // md3_mesh.scale = scale;
+    // md3_mesh.position = Vector3::new(0.0, 0.0, 0.0);
+    // md3_mesh.rotation = Vector3::new(0.0, 0.0, -90.0);
 
     let sleep_time = std::time::Duration::from_millis(16);
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -339,22 +351,27 @@ fn main() {
         let elapsed = (now - start).subsec_nanos() as f64 * 1e-9 + (now - start).as_secs() as f64;
 
         {
-
-            let meshes = vec![&md3_mesh];
+            let meshes = vec![&shell];
+            // let meshes = vec![&octahedron,&tetrahedron];
             // let meshes = vec![&cube, &sphere];
             // let meshes = vec![&triangle];
             device.clear(0xff222222);
             device.render(&camera, &meshes);
         }
 
-        // let r = elapsed.sin().abs();
-        // let r = Vector3::new(r, r, r);
-        // sphere.rotation = sphere.rotation + Vector3::new(0.005, 0.005, 0.005);
+        let r = elapsed.sin().abs();
+        let r = Vector3::new(r, r, r);
+
+        shell.rotation = shell.rotation + Vector3::new(0.0, 1.0, 1.0);
+        // octahedron.rotation = octahedron.rotation + Vector3::new(0.0, 1.0, 0.0);
+        // tetrahedron.rotation = tetrahedron.rotation + Vector3::new(1.0, 1.0, 1.0);
+        // octahedron.scale = Vector3::one() + r;
+        // sphere.rotation = sphere.rotation + Vector3::new(1.0, 1.0, 1.0);
         // sphere.scale = Vector3::one() + r;
-        // cube.rotation = cube.rotation + Vector3::new(0.005, 0.005, 0.005);
+        // cube.rotation = cube.rotation + Vector3::new(1.0, 1.0, 1.0);
         // cube.scale = Vector3::one() + r;
 
-        md3_mesh.rotation = md3_mesh.rotation + Vector3::new(0.0, 0.3, 0.0);
+        // md3_mesh.rotation = md3_mesh.rotation + Vector3::new(0.0, 0.3, 0.0);
 
         window.update_with_buffer(&device.backbuffer);
 
